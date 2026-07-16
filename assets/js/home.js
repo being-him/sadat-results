@@ -9,6 +9,36 @@
   const form = Utils.qs("#searchForm");
   const submitBtn = Utils.qs("#searchSubmit");
   const errorBox = Utils.qs("#formError");
+  const searchOverlay = Utils.qs("#searchOverlay");
+  const progressFill = searchOverlay.querySelector(".progress-fill");
+
+  const SEARCH_PROGRESS_MS = 1200; // must match the progress-complete animation duration in style.css
+  const OVERLAY_FADE_MS = 320; // must match --dur-med, used for the overlay's fade-scale-out animation
+
+  function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  function showOverlay() {
+    searchOverlay.classList.remove("is-leaving");
+    searchOverlay.hidden = false;
+    // Restart the progress-fill animation from 0% every time the overlay opens.
+    progressFill.classList.remove("is-filling");
+    void progressFill.offsetWidth; // force reflow so the animation restarts
+    progressFill.classList.add("is-filling");
+  }
+
+  function hideOverlay() {
+    return new Promise(resolve => {
+      searchOverlay.classList.add("is-leaving");
+      setTimeout(() => {
+        searchOverlay.hidden = true;
+        searchOverlay.classList.remove("is-leaving");
+        progressFill.classList.remove("is-filling");
+        resolve();
+      }, OVERLAY_FADE_MS);
+    });
+  }
 
   function setOptions(select, options, placeholder) {
     select.innerHTML = "";
@@ -108,17 +138,26 @@
 
     submitBtn.classList.add("is-loading");
     submitBtn.disabled = true;
+    showOverlay();
 
     try {
-      const exams = await Data.getExams(academicYear, examYear);
-      const exam = exams.find(e => e.id === examId);
-      if (!exam) throw new Error("Exam not found");
+      const dataPromise = (async () => {
+        const exams = await Data.getExams(academicYear, examYear);
+        const exam = exams.find(e => e.id === examId);
+        if (!exam) throw new Error("Exam not found");
+        const examData = await Data.loadExamFile(examYear, exam.file);
+        const student = Data.findStudent(examData, registration);
+        return { exam, student };
+      })();
 
-      const examData = await Data.loadExamFile(examYear, exam.file);
-      const student = Data.findStudent(examData, registration);
+      // Let the progress bar finish its fill animation and the data load
+      // in parallel — whichever takes longer sets the pace, so the bar
+      // always completes before we act on the result.
+      const [{ exam, student }] = await Promise.all([dataPromise, wait(SEARCH_PROGRESS_MS)]);
 
       if (!student) {
-        showError("No result found for this registration number. Please check and try again.");
+        await hideOverlay();
+        showError("No results found for this registration number. Please check and try again.");
         submitBtn.classList.remove("is-loading");
         submitBtn.disabled = false;
         return;
@@ -130,6 +169,7 @@
         reg: registration
       });
 
+      await hideOverlay();
       document.querySelector(".app-shell").classList.add("page-transition-out");
       setTimeout(() => {
         window.location.href = `result.html?${params.toString()}`;
@@ -137,6 +177,7 @@
 
     } catch (err) {
       console.error(err);
+      await hideOverlay();
       showError("Something went wrong loading results. Please try again.");
       submitBtn.classList.remove("is-loading");
       submitBtn.disabled = false;

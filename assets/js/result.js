@@ -39,7 +39,7 @@
 
     const student = Data.findStudent(exam, registration);
     if (!student) {
-      showError("Result not found", `No student with registration ${registration} was found for this exam.`);
+      showError("No results found", `No results found for registration ${registration}. Please check the number and search again.`);
       return;
     }
 
