@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
-<div class="app-shell page-fade-in">
+<div class="app-shell">
 
   <header class="topbar">
     <a class="brand" href="index.html" aria-label="Result Portal home">
@@ -25,9 +25,14 @@
   </header>
 
   <main>
-    <!-- Skeleton loader shown while JSON loads -->
+    <!-- Searching overlay shown while the result is being fetched -->
     <div class="skeleton-wrap" id="skeletonWrap">
-      <div class="skel skel-card"></div>
+      <div class="loading-card">
+        <div class="search-overlay-spinner"><span class="ring"></span></div>
+        <h2 class="loading-title">Loading your results…</h2>
+        <p class="loading-desc">Please wait while we fetch your marks and grades.</p>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+      </div>
       <div class="skel-grid">
         <div class="skel skel-tile"></div>
         <div class="skel skel-tile"></div>
@@ -41,9 +46,12 @@
       <div class="state-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>
       </div>
-      <h2 id="errorTitle">Result not found</h2>
-      <p id="errorDesc">We couldn't find a result matching your search. Please go back and try again.</p>
-      <a class="btn btn-accent" href="index.html">Back to search</a>
+      <h2 id="errorTitle">No results found</h2>
+      <p id="errorDesc">No results found for this registration number. Please check the number and search again.</p>
+      <a class="btn btn-accent" href="index.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Search Again
+      </a>
     </div>
 
     <!-- Main result content -->
