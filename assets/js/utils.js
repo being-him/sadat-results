@@ -27,6 +27,14 @@ const Utils = (() => {
     return (subject.type || "theory").toLowerCase() !== "practical";
   }
 
+  // A subject with credit 0 (e.g. "English Compulsory") doesn't count toward
+  // total marks, highest marks, or average marks — only credit-bearing
+  // subjects should be summed. This mirrors how computeSgpa() already
+  // ignores 0-credit subjects when awarding grade points.
+  function isCredit(subject) {
+    return (subject.credit || 0) > 0;
+  }
+
   function isSgpaExam(examName) {
     const name = (examName || "").toLowerCase();
     return CONFIG.sgpaExamKeywords.some(k => name.includes(k));
@@ -59,18 +67,19 @@ const Utils = (() => {
   function buildLeaderboard(exam) {
     const sgpaMode = isSgpaExam(exam.examName);
     const theorySubjects = exam.subjects.filter(isTheory);
-    const totalFullMarks = exam.subjects.reduce((sum, sub) => sum + (sub.fullMarks || 100), 0);
+    const creditSubjects = exam.subjects.filter(isCredit);
+    const totalFullMarks = creditSubjects.reduce((sum, sub) => sum + (sub.fullMarks || 100), 0);
 
     const rows = exam.students.map(student => {
+      const totalMarks = creditSubjects.reduce((sum, sub) => sum + (student.marks[sub.code] || 0), 0);
       let score;
       let sgpaResult = null;
       if (sgpaMode) {
         sgpaResult = computeSgpa(exam, student.marks);
         score = sgpaResult ? sgpaResult.sgpa : 0;
       } else {
-        score = exam.subjects.reduce((sum, sub) => sum + (student.marks[sub.code] || 0), 0);
+        score = totalMarks;
       }
-      const totalMarks = exam.subjects.reduce((sum, sub) => sum + (student.marks[sub.code] || 0), 0);
       return { student, score, sgpaResult, totalMarks };
     });
 
